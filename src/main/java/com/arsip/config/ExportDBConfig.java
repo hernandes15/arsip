@@ -20,16 +20,29 @@ import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
+import com.zaxxer.hikari.HikariDataSource;
+
 @Configuration
 @EnableTransactionManagement
 @EnableJpaRepositories(entityManagerFactoryRef = "entityManagerFactory", basePackages = { "com.arsip.repository" })
 public class ExportDBConfig {
 	
+//	@Primary
+//	@Bean(name = "dataSource")
+//	@ConfigurationProperties(prefix = "spring.datasource")
+//	public DataSource dataSource() {
+//		return DataSourceBuilder.create().build();
+//	}
+	
 	@Primary
 	@Bean(name = "dataSource")
-	@ConfigurationProperties(prefix = "spring.datasource")
 	public DataSource dataSource() {
-		return DataSourceBuilder.create().build();
+	    HikariDataSource ds = new HikariDataSource();
+	    ds.setDriverClassName("org.h2.Driver");
+	    ds.setJdbcUrl("jdbc:h2:mem:penjualan;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE");
+	    ds.setUsername("sa");
+	    ds.setPassword("");
+	    return ds;
 	}
 
 	@Primary
