@@ -22,6 +22,7 @@ import org.springframework.security.web.firewall.HttpFirewall;
 
 import com.arsip.entity.MstUser;
 import com.arsip.repository.UserRepository;
+import com.arsip.service.impl.CustomUserDevice;
 
 @Configuration
 @EnableScheduling
@@ -32,32 +33,22 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter{
     @Configuration
     @Order(1)
     public static class ApiWebSecurityConfig extends WebSecurityConfigurerAdapter {
-    	@Value("${security.user.name}")
-    	private String securityUserName;
-    	
-    	@Value("${security.user.password}")
-    	private String securityUserPassword;
+//    	@Value("${security.user.name}")
+//    	private String securityUserName;
+//    	
+//    	@Value("${security.user.password}")
+//    	private String securityUserPassword;
     	
     	@Autowired
     	private UserRepository repo;
+    	
+    	@Autowired
+    	private CustomUserDevice userDevice;
         
-        @Override
+    	@Override
         protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        	PasswordEncoder encoder = PasswordEncoderFactories.createDelegatingPasswordEncoder();
-        	MstUser user = new MstUser();
-        	user.setUsername(securityUserName);
-        	user.setPassword(securityUserPassword);
-        	user.setRole("ADMIN");
-        	
-        	List<MstUser> users = repo.findAll();
-        	users.add(user);
-        	
-        	for (int i = 0; i < users.size(); i++) {
-        		auth.inMemoryAuthentication()
-              	.withUser(users.get(i).getUsername())
-              	.password(encoder.encode(users.get(i).getPassword()))
-              	.roles(users.get(i).getRole());
-			}
+            auth.userDetailsService(userDevice)
+                .passwordEncoder(PasswordEncoderFactories.createDelegatingPasswordEncoder());
         }
     }
 
@@ -65,11 +56,24 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter{
     @Order(2)
     public static class FormWebSecurityConfig extends WebSecurityConfigurerAdapter {
 
-    	@Override 
-        public void configure(WebSecurity web) throws Exception {
-        	web.ignoring().antMatchers("/resources/**","/static/**","/templates/**");
-        	web.httpFirewall(defaultHttpFirewall());
-        }
+    	@Override
+    	protected void configure(HttpSecurity http) throws Exception {
+    	    http
+    	        .authorizeRequests()
+    	            .antMatchers("/login", "/h2-console/**", "/css/**", "/js/**").permitAll()
+    	            .anyRequest().authenticated()
+    	            .and()
+    	        .formLogin()
+    	            .loginPage("/login")           // halaman login custom
+    	            .defaultSuccessUrl("/dashboard", true)
+    	            .permitAll()
+    	            .and()
+    	        .logout()
+    	            .permitAll()
+    	            .and()
+    	        .csrf().disable()                 // optional untuk H2 console
+    	        .headers().frameOptions().disable(); // optional untuk H2 console
+    	}
     	
     	@Bean
         public HttpFirewall defaultHttpFirewall() {
